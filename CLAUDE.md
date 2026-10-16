@@ -9,7 +9,8 @@ Personal project memory for Claude Code: an MCP server plus a CLI for hooks. PRD
 - `src/quiver/memory.py`: workstream logic (set_status, binding, stacks, board, context, activity).
 - `src/quiver/render.py`: the one markdown renderer, shared by tools and hooks.
 - `src/quiver/server.py`: FastMCP tools. Docstrings and `Field` descriptions are the tool schema Claude reads: treat them as product copy.
-- `src/quiver/__init__.py`: CLI (`serve`, `context`, `stop`, `board`, `log`).
+- `src/quiver/ui.py`: `quiver ui`, the board in a Tk window whose buttons open `claude` (new or resumed) in Terminal.
+- `src/quiver/__init__.py`: CLI (`serve`, `context`, `stop`, `board`, `log`, `ui`).
 
 Memory lives in a separate repo: `$QUIVER_HOME`, default `~/dev/general/quiver-memory`. Never write to it from tests or experiments; point `QUIVER_HOME` at a temp dir.
 
@@ -17,7 +18,7 @@ Memory lives in a separate repo: `$QUIVER_HOME`, default `~/dev/general/quiver-m
 
 - Frontmatter field names and enum values in `store.py` models.
 - Status-log line: `- <UTC_STAMP> <status> <free text>` (`memory._log_line`, parsed by `_LOG_LINE`).
-- Session line: `{"time": UTC_STAMP, "session_id", "project", "workstream"}` in `_sessions/<UTC date>.jsonl`.
+- Session line: `{"time": UTC_STAMP, "session_id", "project", "workstream", "cwd"}` (`cwd` absent on older lines) in `_sessions/<UTC date>.jsonl`.
 - Remote key format: lowercase `host/path`.
 
 ## Rules
@@ -29,5 +30,5 @@ Memory lives in a separate repo: `$QUIVER_HOME`, default `~/dev/general/quiver-m
 ## Commands
 
 - `uv run pytest -q`
-- `.venv/bin/quiver board | log [--date YYYY-MM-DD] | context --cwd PATH` (`context` and `stop` also read hook JSON on stdin)
+- `.venv/bin/quiver board | log [--date YYYY-MM-DD] | ui | context --cwd PATH` (`context` and `stop` also read hook JSON on stdin)
 - Hooks are configured in `~/.claude/settings.json` and call `.venv/bin/quiver` by absolute path; run `uv sync` after moving the repo.

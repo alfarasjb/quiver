@@ -312,10 +312,12 @@ def _sessions_dir() -> Path:
     return home() / "_sessions"
 
 
-def log_session_event(session_id: str, project: str, workstream: str | None, at: datetime | None = None) -> None:
-    """Append one line for a session event. Contract: time (UTC Z), session_id, project, workstream."""
+def log_session_event(
+    session_id: str, project: str, workstream: str | None, cwd: str | None = None, at: datetime | None = None
+) -> None:
+    """Append one line for a session event. Contract: time (UTC Z), session_id, project, workstream, cwd."""
     at = (at or now()).astimezone(UTC)
-    line = {"time": f"{at:{UTC_STAMP}}", "session_id": session_id, "project": project, "workstream": workstream}
+    line = {"time": f"{at:{UTC_STAMP}}", "session_id": session_id, "project": project, "workstream": workstream, "cwd": cwd}
     path = _sessions_dir() / f"{at:%Y-%m-%d}.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     # ponytail: relies on O_APPEND for small single writes on a local fs; add fcntl.flock if lines ever interleave.
@@ -329,6 +331,7 @@ class SessionEvent:
     session_id: str
     project: str
     workstream: str | None
+    cwd: str | None = None  # absent on lines written before quiver ui
 
 
 def session_events(start: datetime, end: datetime) -> list[SessionEvent]:
@@ -345,6 +348,7 @@ def session_events(start: datetime, end: datetime) -> list[SessionEvent]:
                     str(d["session_id"]),
                     str(d["project"]),
                     d.get("workstream"),
+                    d.get("cwd"),
                 )
             except (ValueError, KeyError, TypeError):
                 continue  # a torn or hand-mangled line costs one event, not the day

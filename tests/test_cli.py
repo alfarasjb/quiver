@@ -107,3 +107,29 @@ def test_stop_never_fails(tmp_path, capsys, monkeypatch):
     missing = str(tmp_path / "nope.jsonl")
     assert stop(capsys, monkeypatch, session_id="s1", cwd=str(repo), transcript_path=missing) == ""
     assert len(session_lines()) == 1
+
+
+def test_ui_command_opens_new_and_resumed_sessions(tmp_path):
+    from quiver.store import Key, ProjectMeta, log_session_event
+    from quiver.ui import command, verify_command
+
+    repo, worktree = tmp_path / "widget", tmp_path / "widget-abc"
+    repo.mkdir(), worktree.mkdir()
+    save_project(ProjectMeta(slug="widget", name="widget", keys=[Key(key=str(repo), kind="dir")]))
+    set_status("widget", "needs_me", "pick a tenancy model", name="abc")
+
+    # No session yet: New falls back to the project's dir key, and there is nothing to resume.
+    assert command("widget", "abc", "new").startswith(f"cd {repo} && claude ")
+    assert "wait for me" in command("widget", "abc", "new")
+    with pytest.raises(ValueError, match="no logged session"):
+        command("widget", "abc", "resume")
+
+    log_session_event("s1", "widget", "abc", str(worktree))
+    assert command("widget", "abc", "new").startswith(f"cd {worktree} && ")
+    assert command("widget", "abc", "resume") == f"cd {worktree} && claude --resume s1"
+
+    set_status("widget", "waiting", "await review", name="def")
+    line = verify_command("widget", ["abc", "def"])
+    assert line.startswith(f"cd {worktree} && claude ") and "abc, def" in line and "set_status done" in line
+    with pytest.raises(ValueError, match="no open workstream"):
+        verify_command("widget", ["abc", "ghost"])

@@ -30,7 +30,7 @@ def _resolve_and_log(hook: dict) -> tuple[Project | Unregistered | None, str | N
     bound = memory.find_by_branch(found.slug, found.branch)
     name = bound.name if bound else None
     if session := hook.get("session_id"):
-        log_session_event(session, found.slug, name)
+        log_session_event(session, found.slug, name, hook["cwd"])
     return found, name
 
 
@@ -116,6 +116,7 @@ def main(argv: list[str] | None = None) -> None:
     log = commands.add_parser("log", help="Show a day's activity by session block.")
     log.add_argument("--date", type=_day, help="Local day, YYYY-MM-DD. Defaults to today.")
     log.add_argument("--project", type=_slug)
+    commands.add_parser("ui", help="Open the board in a window that starts Claude Code sessions.")
     args = parser.parse_args(argv)
 
     if args.command == "serve":
@@ -143,3 +144,7 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "log":
         day = args.date or date.today()
         print(render_activity(day, memory.activity(day, args.project)))
+    elif args.command == "ui":
+        from quiver.ui import run
+
+        run()
